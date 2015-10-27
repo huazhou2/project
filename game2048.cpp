@@ -257,7 +257,7 @@ void game_over(WINDOW* stat_win) {
 	}	
 bool is_Gameover(vector<vector<int> >& board) {
 	for (int i=0;i<board.size();i++) {
-		for (int j=0;j<board[i].size()-1;j++) {
+		for (int j=0;j<board[i].size();j++) {
 			if (!board[i][j]) return false; 
 			//compare with next row
 			if (i+1<board.size() && board[i][j]==board[i+1][j]) return false; 
