@@ -14,6 +14,7 @@ int move_left(vector<vector<int> >& board);
 void generate_new(vector<vector<int> >& board);
 void new_game(WINDOW* gamewin,WINDOW* statwin,vector<vector<int> >& board,int,int);
 bool is_Gameover(vector<vector<int> >& board);
+void game_over(WINDOW*);
 int main(int argc, char *argv[]) {
 	initialize();
 	int std_y, std_x;
@@ -29,59 +30,69 @@ int main(int argc, char *argv[]) {
 	int gap_row,gap_col;
 	init_screen(game_win,gap_row,gap_col);
 	vector<vector<int> > board(4,vector<int>(4,0));//create board matrix
-	
-//	mvwprintw(game_win,1,1,"game window");
+	//start and initialize color mode
 	start_color();
-	int score=0;
+	init_pair(2,COLOR_BLUE,COLOR_BLACK);
+	init_pair(3,COLOR_GREEN,COLOR_BLACK);
+	init_pair(4,COLOR_YELLOW,COLOR_BLACK);
+	init_pair(5,COLOR_CYAN,COLOR_BLACK);
+	init_pair(6,COLOR_MAGENTA,COLOR_BLACK);
+	init_pair(7,COLOR_RED,COLOR_BLACK);
 	new_game(game_win,stat_win,board,gap_row,gap_col);
-	
-//read in game input
+	//read in game input
 	keypad(game_win,true);
 	int key;
+	int score=0;
+	//game play
 	while(1) {
-		if (is_Gameover(board)) break;	
-		key=wgetch(game_win);
-		int get_score=0;
-		switch(key) {
-		case KEY_UP:
-			rotate_left(board);
-			get_score=move_left(board);
-			rotate_right(board);
-			break;
-		case KEY_DOWN:
-			rotate_right(board);
-			get_score=move_left(board);
-			rotate_left(board);
-			break;
-		case KEY_LEFT:
-			get_score=move_left(board);
-			break;
-		case KEY_RIGHT:
-			rotate_right(board);
-			rotate_right(board);
-			get_score=move_left(board);
-			rotate_left(board);
-			rotate_left(board);
-			break;
-		case '1':
-			new_game(game_win,stat_win,board,gap_row,gap_col);
-			break;
-			}
-		if (key=='q') break;
+		int get_score=0;//the score you get in one move
 		show_game(game_win,board,gap_row,gap_col);
 		wrefresh(game_win);	
-		if (get_score) {
+		key=wgetch(game_win);
+		if (is_Gameover(board)) { //game over, only accept q or 1 as input
+			game_over(stat_win);	
+			if (key=='q') break;
+			else if (key=='1') 
+			new_game(game_win,stat_win,board,gap_row,gap_col);}
+		else {	//regular game play with direction key etc.	
+			switch(key) {
+			case KEY_UP:
+				rotate_left(board);
+				get_score=move_left(board);
+				rotate_right(board);
+				break;
+			case KEY_DOWN:
+				rotate_right(board);
+				get_score=move_left(board);
+				rotate_left(board);
+				break;
+			case KEY_LEFT:
+				get_score=move_left(board);
+				break;
+			case KEY_RIGHT:
+				rotate_right(board);
+				rotate_right(board);
+				get_score=move_left(board);
+				rotate_left(board);
+				rotate_left(board);
+				break;
+			case '1':
+				new_game(game_win,stat_win,board,gap_row,gap_col);
+				break;
+				}
+			}
+		if (key=='q') break;
+		if (get_score) {//print new score if scored
 			score+=get_score;
-			wattron(stat_win,COLOR_PAIR(4));
+			wattron(stat_win,COLOR_PAIR(6));
 			mvwprintw(stat_win,4,1,"      ");
 			mvwprintw(stat_win,4,1,"Score %6d",score);
 			wattroff(stat_win,COLOR_PAIR(4));
 			wrefresh(stat_win);
-		}
+			}
 		}
 	endwin();
 	}
-
 void initialize() {
 	initscr();
 	noecho();
@@ -106,8 +117,8 @@ void init_screen(WINDOW* mywin, int &gap_row, int &gap_col) {
 			mvwaddch(mywin,j,i,'+');
 			else
 			mvwaddch(mywin,j,i,'|');
-	}	
-}
+		}	
+	}
 //show the current board on game screen
 void show_game(WINDOW* mywin,const vector<vector<int> >& board, int gap_row, int gap_col) {
 	int row=board.size();
@@ -117,13 +128,27 @@ void show_game(WINDOW* mywin,const vector<vector<int> >& board, int gap_row, int
 		for (int j=0;j<col;j++)  
 		mvwprintw(mywin,gap_row*i+gap_row/2,gap_col*j+gap_col/4,"    ");
 	wrefresh(mywin);
+	start_color();
 	for (int i=0;i<row;i++) 
 		for (int j=0;j<col;j++)  
-		if (board[i][j]!=0)
+		if (board[i][j]!=0) {
+		int digit=0;
+		int number=board[i][j];
+		while (number) {
+			number>>=1;
+			digit++;}
+		int color;
+		color=digit/2+1;
+		if (digit>13) color=7;//max color being 7
+		wattron(mywin,COLOR_PAIR(color));
+		wattron(mywin,A_BOLD);
 		mvwprintw(mywin,gap_row*i+gap_row/2,gap_col*j+gap_col/4,"%4d",board[i][j]);
+		wattroff(mywin,COLOR_PAIR(color));
+		wattroff(mywin,A_BOLD);
+			}
 	}
 
-int move_left (vector<vector<int> >& board) {
+int move_left (vector<vector<int> >& board) {//move and return score you get
 	int row=board.size();
 	int col=board[0].size();
 	int zero_count=0;
@@ -139,7 +164,7 @@ int move_left (vector<vector<int> >& board) {
 				board[i][j+1]=0;
 				}
 		}
-	//shift left if 0 to left
+	//shift left if 0 to its left
 	for (int i=0;i<row;i++) { 
 		int cur=0;
 		for (int j=0;j<col;j++) {
@@ -152,7 +177,7 @@ int move_left (vector<vector<int> >& board) {
 				}
 		zero_count=zero_count+board.size()-cur;
 			}
-	if (is_moved) {
+	if (is_moved) {//if any move then generate 2 at random pos 
 		int pos=rand()%zero_count+1;
 		int count=0;
 		for (int i=0;i<board.size();i++) 
@@ -163,7 +188,7 @@ int move_left (vector<vector<int> >& board) {
 					}
 		}
 	return score;
-		}
+	}
 void rotate_left (vector<vector<int> >& board) {
 	int row=board.size();
 	int col=board[0].size();
@@ -183,13 +208,12 @@ void rotate_left (vector<vector<int> >& board) {
 				}
 			}
 	}
-	
 void rotate_right (vector<vector<int> >& board) {
-		rotate_left(board);
-		rotate_left(board);
-		rotate_left(board);
+	rotate_left(board);
+	rotate_left(board);
+	rotate_left(board);
 		}
-void generate_new(vector<vector<int> >& board) {
+void generate_new(vector<vector<int> >& board) {//generate game board
 	srand(time(NULL));
 	int pos1, pos2;
 	do {
@@ -205,22 +229,34 @@ void generate_new(vector<vector<int> >& board) {
 			else board[i][j]=0;
 	}
 void new_game(WINDOW* game_win,WINDOW* stat_win,vector<vector<int> >& board,int gap_row, int gap_col) {
+	wclear(stat_win);
+	wrefresh(stat_win);
 	start_color();
-	init_pair(2,COLOR_RED,COLOR_BLACK);
-	wattron(stat_win,COLOR_PAIR(2));
+	wattron(stat_win,COLOR_PAIR(7));
 	mvwprintw(stat_win,1,1,"Hua's 2048 Game");
-	init_pair(3,COLOR_GREEN,COLOR_BLACK);
+	wattroff(stat_win,COLOR_PAIR(2));
 	wattron(stat_win,COLOR_PAIR(3));
 	mvwprintw(stat_win,2,1,"Use Arrow Key to control move");
 	mvwprintw(stat_win,3,1,"Press Q to quit");
-	init_pair(4,COLOR_MAGENTA,COLOR_BLACK);
-	wattron(stat_win,COLOR_PAIR(4));
+	wattroff(stat_win,COLOR_PAIR(3));
+	wattron(stat_win,COLOR_PAIR(6));
 	mvwprintw(stat_win,4,1,"Score %6d",0);
-	//wattroff(stat_win,COLOR_PAIR);
+	wattroff(stat_win,COLOR_PAIR(4));
 	wrefresh(stat_win);
 	generate_new(board);
 	show_game(game_win, board,gap_row,gap_col);
 	}
+void game_over(WINDOW* stat_win) {
+	start_color();
+	wattron(stat_win,COLOR_PAIR(7));
+	wattron(stat_win,A_BLINK);
+	wattron(stat_win,A_BOLD);
+	mvwprintw(stat_win,5,1,"Game Over");
+	wattroff(stat_win,A_BLINK);
+	wattroff(stat_win,A_BOLD);
+	mvwprintw(stat_win,6,1,"q for quit and 1 for new game");
+	wrefresh(stat_win);
+	}	
 bool is_Gameover(vector<vector<int> >& board) {
 	for (int i=0;i<board.size();i++) {
 		for (int j=0;j<board[i].size()-1;j++) {
@@ -231,4 +267,3 @@ bool is_Gameover(vector<vector<int> >& board) {
 	}
 	return true;
 	}
-
