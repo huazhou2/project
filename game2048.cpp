@@ -234,11 +234,9 @@ void new_game(WINDOW* game_win,WINDOW* stat_win,vector<vector<int> >& board,int 
 	start_color();
 	wattron(stat_win,COLOR_PAIR(7));
 	mvwprintw(stat_win,1,1,"Hua's 2048 Game");
-	wattroff(stat_win,COLOR_PAIR(2));
 	wattron(stat_win,COLOR_PAIR(3));
 	mvwprintw(stat_win,2,1,"Use Arrow Key to control move");
 	mvwprintw(stat_win,3,1,"Press Q to quit");
-	wattroff(stat_win,COLOR_PAIR(3));
 	wattron(stat_win,COLOR_PAIR(6));
 	mvwprintw(stat_win,4,1,"Score %6d",0);
 	wattroff(stat_win,COLOR_PAIR(4));
