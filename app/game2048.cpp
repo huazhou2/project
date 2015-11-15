@@ -155,14 +155,20 @@ int move_left (vector<vector<int> >& board) {//move and return score you get
 	bool is_moved=false;
 	int score=0;
 	//combine the same number and set the cell to right as 0
-	for (int i=0;i<row;i++) {
-		for (int j=0;j<col-1;j++) 
-			if (board[i][j] && board[i][j]==board[i][j+1]) { 
-				is_moved=true;
-				score+=board[i][j];
-				board[i][j]<<=1;
-				board[i][j+1]=0;
-				}
+ 	for (int i=0;i<row;i++)
+            for (int j=0;j<col-1;j++) {
+                if (board[i][j]) { //skip zeros
+                    for (int k=j+1;k<col;k++) {
+                        if (board[i][k]!=0) {
+                            if (board[i][j]==board[i][k]) {
+                                is_moved=true;
+                                score+=board[i][j];
+                                board[i][j]<<=1; //record change position by negative
+                                board[i][k]=0;
+                                j=k; }
+                            break; }
+                        }
+                    }
 		}
 	//shift left if 0 to its left
 	for (int i=0;i<row;i++) { 
