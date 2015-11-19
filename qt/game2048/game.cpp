@@ -1,7 +1,8 @@
 #include "game.h"
 using namespace std;
 int Game::h_score=0;
-int Game::mark=0;
+int Game::mark=4;
+
 Game::Game() {
     board=vector<vector<int> >(4, vector<int> (4,0));
     //2 random cells initialized with 2 and 2/4.
@@ -36,10 +37,7 @@ bool Game::isGameover() {
     }
     return true;
 }
-bool Game::isGameChanged() { return gamechanged;}
-bool Game::isScoreChanged() {
-    h_score=score>h_score?score:h_score;
-    return  scorechanged;}
+
 void Game::move_left() {
     //merge and  move cells, use negative number to record merged cells
     int row=board.size();
@@ -47,8 +45,10 @@ void Game::move_left() {
     int zero_count=0;
     gamechanged=false;
     scorechanged=false;
+    hscorechanged=false;
     markchanged=false;
-    
+
+
     int newscore=0;
     for (int i=0;i<row;i++)
         for (int j=0;j<col;j++)
@@ -98,6 +98,9 @@ void Game::move_left() {
     }
     scorechanged=newscore!=0;
     score+=newscore;
+    if (score>=h_score) {
+        h_score=score;
+        hscorechanged=true;}
 }
 void Game::rotate_left () {
     int row=board.size();
@@ -154,4 +157,9 @@ int Game::getScore() {return score;}
 int Game::getHScore() {return h_score;}
 int Game::getMark() {return mark;}
 bool Game::isMarkChanged() {return markchanged;}
+bool Game::isGameChanged() { return gamechanged;}
+bool Game::isScoreChanged() { return  scorechanged;}
+bool Game::isHScoreChanged() { return  hscorechanged;}
+void Game::setHScore(int num) {h_score=num;}
+void Game::setMark(int num) {mark=num;}
 

@@ -1,15 +1,22 @@
 #include "gameboard.h"
+#include <iostream>
 
 gameBoard::gameBoard(QWidget* parent): QWidget(parent) {
     //start new game and paint the app
     game=new Game();
+    readGame();
     paint();
     create_Menu();
     connect(menu,SIGNAL(clicked()),this,SLOT(menu_Clicked()));
     connect(cont,SIGNAL(clicked()),this, SLOT(cont_Clicked()));
+    connect(win_cont,SIGNAL(clicked()),this, SLOT(cont_Clicked()));
     connect(restart,SIGNAL(clicked()),this, SLOT(restart_Clicked()));
+        connect(reset_game,SIGNAL(clicked()),this, SLOT(resetGame()));
     connect(this,SIGNAL(isGameOver()),this,SLOT(showGameOver()));
+    connect(this,SIGNAL(isGameWin()),this,SLOT(showGameWin()));
     connect(restart_game,SIGNAL(clicked()),this,SLOT(restartGame_Clicked()));
+    connect(this,SIGNAL(closed()),this,SLOT(saveGame()));
+
 }
 gameBoard::~gameBoard() {
 
@@ -147,9 +154,13 @@ void gameBoard::keyPressEvent(QKeyEvent* event) {
     if (game->isScoreChanged()) {
         score->setText(QString("Current Score\n %1").arg(game->getScore()));
         //set highscore if cur score equals highest score
-        if (game->getScore()==game->getHScore())
+        if (game->isHScoreChanged())
             hscore->setText(QString("Highest Score\n %1").arg(game->getHScore()));
-        if (game->isMarkChanged()) statement->setText(QString("You new challenge is to get %1").arg(game->getMark()));
+        if (game->isMarkChanged()) {
+            statement->setText(QString("You new challenge is to get %1").arg(game->getMark()));
+            if (game->getMark()>128)
+            emit isGameWin();
+        }
     }
     if (game->isGameover()) emit isGameOver();
 }
@@ -248,18 +259,44 @@ void gameBoard::create_Menu() {
     cont=new QPushButton("Continue");
     restart=new QPushButton("Restart");
     restart_game=new QPushButton("Restart Game");
+    reset_game=new QPushButton("Reset Game");
+     win_cont=new QPushButton("Continue");
     restart_game->setFixedSize(200,60);
     cont->setFixedSize(200,60);
     restart->setFixedSize(200,60);
+      reset_game->setFixedSize(200,60);
     decButton(restart_game);
     decButton(cont);
     decButton(restart);
+    decButton(reset_game);
+    decButton(win_cont);
     QVBoxLayout* menu_lay=new QVBoxLayout(menu_log);
     menu_lay->addWidget(cont,0,Qt::AlignCenter);
     menu_lay->addWidget(restart,0,Qt::AlignCenter);
-}
-void gameBoard::showGameOver() {
+        menu_lay->addWidget(reset_game,0,Qt::AlignCenter);
     gameover=new QDialog();
+    gamewin=new QDialog();
+}
+void gameBoard::resetGame() {
+    game=new Game;
+    game->setHScore(0);
+    game->setMark(4);
+    menu_log->hide();
+    score->setText(QString("Current Score\n %1").arg(game->getScore()));
+     hscore->setText(QString("Highest Score\n %1").arg(game->getHScore()));
+     statement->setText(QString("You new challenge is to get %1").arg(game->getMark()));
+    update();
+    //change save file
+    std::ofstream ofs("./game_save");
+    if (ofs.good()) {
+        boost::archive::text_oarchive ar(ofs);
+        ar & (*game);
+        }
+    ofs.close();
+}
+
+void gameBoard::showGameOver() {
+
     gameover->setStyleSheet("background-color: rgb(0,153,153)");
     gameover->resize(450,300);
     gameover->setModal(true);
@@ -275,11 +312,31 @@ void gameBoard::showGameOver() {
     gameover_lay->addWidget(restart_game,1,Qt::AlignCenter);
     gameover->show();
 }
+void gameBoard::showGameWin() {
+    delete gamewin->layout();
+    gamewin->setStyleSheet("background-color: green");
+    gamewin->resize(550,400);
+    gamewin->setModal(true);
+    QLabel* gamewin_lab=new QLabel("You Win!");
+    QLabel* mark_lab=drawLabel(game->getMark()>>1);
+    gamewin_lab->setStyleSheet(
+                "color: red;"
+                "font: arial;"
+                "font-size: 64px;"
+                "border-radius: 10px;"
+                "qproperty-alignment: AlignCenter;");
+    QVBoxLayout* gamewin_lay=new QVBoxLayout(gamewin);
+    gamewin_lay->addWidget(gamewin_lab,10,Qt::AlignCenter);
+    gamewin_lay->addWidget(mark_lab,3,Qt::AlignCenter);
+    gamewin_lay->addWidget(win_cont,1,Qt::AlignRight);
+    gamewin->show();
+}
 void gameBoard::menu_Clicked() {
     menu_log->show();
 }
 void gameBoard::cont_Clicked() {
-    menu_log->hide();
+    if (menu_log->isVisible()) menu_log->hide();
+    if (gamewin->isVisible()) gamewin->hide();
 }
 void gameBoard::restart_Clicked() {
     menu_log->hide();
@@ -312,4 +369,40 @@ void gameBoard::decButton(QPushButton* butt) {
                 "}"
                 );
 }
+void gameBoard::readGame() {
+    std::ifstream ifs("./game_save");
+    if (ifs.good()) {
+        boost::archive::text_iarchive ar(ifs);
+        ar & (*game);
+        }
+    ifs.close();
+    }
+void gameBoard::closeEvent (QCloseEvent * event ){
+    emit closed();
+    event->accept();
+}
+
+void gameBoard::saveGame() {
+    //very naive of saving high score and mark
+    int hscore=game->getHScore();
+    int hmark=game->getMark();
+    Game temp;
+    std::ifstream ifs("./game_save");
+    if (ifs.good()) {
+        boost::archive::text_iarchive ar(ifs);
+        ar & temp;
+        }
+
+    ifs.close();
+    if (hscore>game->getHScore())
+        game->setHScore(hscore);
+    if (hmark>game->getMark())
+        game->setMark(hmark);
+    std::ofstream ofs("./game_save");
+    if (ofs.good()) {
+        boost::archive::text_oarchive ar(ofs);
+        ar & (*game);
+        }
+    ofs.close();
+    }
 
